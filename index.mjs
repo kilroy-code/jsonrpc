@@ -1,5 +1,5 @@
 
-function transferrableError(error) { // An error object that we receive on our side will not be transferrable to the other.
+function transferrableError(error) { // An error object that we receive on our side might not be transferrable to the other.
   let {name, message} = error;
   return {name, message};
 }
@@ -11,13 +11,20 @@ function dispatch(target, namespace) {
 
   target.addEventListener('message', async event => {
     let {id, method, params, result, error, jsonrpc:version} = event.data || {};
-    if (version !== jsonrpc) return console.log(`Ignoring non-jsonrpc message ${event.data}.`);
+    if (version !== jsonrpc) return console.log(`Ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
 
     if (method) { // Incoming request or notification from target.
-      let error = null,
-	  args = Array.isArray(params) ? params : [params], // Accept either form of params.
-	  result = await namespace[method](...args).catch(e => error = transferrableError(e)),
-	  response = error ? {id, error, jsonrpc} : {id, result, jsonrpc};
+
+      let error = null, result,
+	  args = Array.isArray(params) ? params : [params]; // Accept either form of params.
+      try { // method result might not be a promise, so we can't rely on .catch().
+	result = await namespace[method](...args);
+      } catch (e) {
+	error = transferrableError(e);
+	if (!namespace[method] && !error.message.includes(method))
+	  error.message = `${method} is not defined.`; // Be more helpful than some browsers.
+      }
+      let response = error ? {id, error, jsonrpc} : {id, result, jsonrpc};
       return target.postMessage(response);
     }
 
