@@ -4,7 +4,7 @@ function transferrableError(error) { // An error object that we receive on our s
   return {name, message};
 }
 
-function dispatch({target, receiver = target, namespace = receiver, origin = ((target !== receiver) && target.location.origin)}) {
+function dispatch({target, receiver = target, namespace = receiver, origin = ((target !== receiver) && target.location.origin), log = () => null}) {
   let requests = {},
       messageId = 0,
       jsonrpc = '2.0',
@@ -12,11 +12,13 @@ function dispatch({target, receiver = target, namespace = receiver, origin = ((t
       // window.postMessage and friends takes a targetOrigin that we should supply.
       // But other forms give error rather than ignoring the extra arg. So set the right form at initialization.
       post = origin ? message => capturedPost(message, origin) : capturedPost;
+  log('dispatch, origin:', origin);
 
   receiver.addEventListener('message', async event => {
+    log('message', event.data, 'from', event.source || event.origin);
     let {id, method, params = [], result, error, jsonrpc:version} = event.data || {};
-    if (event.source && (event.source !== target)) return console.error('mismatch', target, event.source);
-    if (origin && (origin !== event.origin)) return console.error('mismatch', origin, event.origin);
+    if (event.source && (event.source !== target)) return console.error('mismatched target:', target, event.source);
+    if (origin && (origin !== event.origin)) return console.error('mismatched origin', origin, event.origin);
     if (version !== jsonrpc) return console.log(`Ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
 
     if (method) { // Incoming request or notification from target.
@@ -28,6 +30,8 @@ function dispatch({target, receiver = target, namespace = receiver, origin = ((t
 	error = transferrableError(e);
 	if (!namespace[method] && !error.message.includes(method))
 	  error.message = `${method} is not defined.`; // Be more helpful than some browsers.
+	else if (!error.message) // It happens. E.g., operational errors from crypto.
+	  error.message = `${error.name || error.toString()} in ${method}.`;
       }
       let response = error ? {id, error, jsonrpc} : {id, result, jsonrpc};
       return post(response);
@@ -46,6 +50,7 @@ function dispatch({target, receiver = target, namespace = receiver, origin = ((t
 	request = requests[id] = {};
     return new Promise((resolve, reject) => {
       Object.assign(request, {resolve, reject});
+      log('posting', id, method, params, 'to', target);
       post({id, method, params, jsonrpc});
     });
   };
