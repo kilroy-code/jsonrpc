@@ -9,8 +9,8 @@ function dispatch({target,
 		   namespace = receiver,
 		   origin = ((target !== receiver) && target.location.origin),
 		   log = () => null,
-		   warn = console.warn.bind(console),
-		   error = console.error.bind(console)
+		   warn:logwarn = console.warn.bind(console),
+		   error:logerror = console.error.bind(console)
 		  }) {
   let requests = {},
       messageId = 0,
@@ -24,9 +24,9 @@ function dispatch({target,
   receiver.addEventListener('message', async event => {
     log('message', event.data, 'from', event.source || event.origin);
     let {id, method, params = [], result, error, jsonrpc:version} = event.data || {};
-    if (event.source && (event.source !== target)) return error('mismatched target:', target, event.source);
-    if (origin && (origin !== event.origin)) return error('mismatched origin', origin, event.origin);
-    if (version !== jsonrpc) return warn(`Ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
+    if (event.source && (event.source !== target)) return logerror('mismatched target:', target, event.source);
+    if (origin && (origin !== event.origin)) return logerror('mismatched origin', origin, event.origin);
+    if (version !== jsonrpc) return logwarn(`Ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
 
     if (method) { // Incoming request or notification from target.
       let error = null, result,
