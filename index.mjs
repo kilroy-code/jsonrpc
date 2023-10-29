@@ -4,7 +4,14 @@ function transferrableError(error) { // An error object that we receive on our s
   return {name, message};
 }
 
-function dispatch({target, receiver = target, namespace = receiver, origin = ((target !== receiver) && target.location.origin), log = () => null}) {
+function dispatch({target,
+		   receiver = target,
+		   namespace = receiver,
+		   origin = ((target !== receiver) && target.location.origin),
+		   log = () => null,
+		   warn = console.warn.bind(console),
+		   error = console.error.bind(console)
+		  }) {
   let requests = {},
       messageId = 0,
       jsonrpc = '2.0',
@@ -17,9 +24,9 @@ function dispatch({target, receiver = target, namespace = receiver, origin = ((t
   receiver.addEventListener('message', async event => {
     log('message', event.data, 'from', event.source || event.origin);
     let {id, method, params = [], result, error, jsonrpc:version} = event.data || {};
-    if (event.source && (event.source !== target)) return console.error('mismatched target:', target, event.source);
-    if (origin && (origin !== event.origin)) return console.error('mismatched origin', origin, event.origin);
-    if (version !== jsonrpc) return console.log(`Ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
+    if (event.source && (event.source !== target)) return error('mismatched target:', target, event.source);
+    if (origin && (origin !== event.origin)) return error('mismatched origin', origin, event.origin);
+    if (version !== jsonrpc) return warn(`Ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
 
     if (method) { // Incoming request or notification from target.
       let error = null, result,
