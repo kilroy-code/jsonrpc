@@ -15,14 +15,15 @@ function dispatch({target,
   let requests = {},
       messageId = 0,
       jsonrpc = '2.0',
+      targetLabel = origin || target,
       capturedPost = target.postMessage.bind(target), // In case (malicious) code later changes it.
       // window.postMessage and friends takes a targetOrigin that we should supply.
       // But other forms give error rather than ignoring the extra arg. So set the right form at initialization.
       post = origin ? message => capturedPost(message, origin) : capturedPost;
-  log('dispatch, origin:', origin);
+  log('dispatch to', targetLabel);
 
   receiver.addEventListener('message', async event => {
-    log('message', event.data, 'from', event.source || event.origin);
+    log('message', event.data, 'from', event.origin || targetLabel);
     let {id, method, params = [], result, error, jsonrpc:version} = event.data || {};
     if (event.source && (event.source !== target)) return logerror('mismatched target:', target, event.source);
     if (origin && (origin !== event.origin)) return logerror('mismatched origin', origin, event.origin);
@@ -41,6 +42,7 @@ function dispatch({target,
 	  error.message = `${error.name || error.toString()} in ${method}.`;
       }
       let response = error ? {id, error, jsonrpc} : {id, result, jsonrpc};
+      log('answering', id, error || result, 'to', targetLabel);
       return post(response);
     }
 
@@ -57,7 +59,7 @@ function dispatch({target,
 	request = requests[id] = {};
     return new Promise((resolve, reject) => {
       Object.assign(request, {resolve, reject});
-      log('posting', id, method, params, 'to', target);
+      log('posting', id, method, params, 'to', targetLabel);
       post({id, method, params, jsonrpc});
     });
   };
