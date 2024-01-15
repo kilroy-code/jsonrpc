@@ -17,7 +17,10 @@
     "worker",
     "iframe"
   ],
-  "author": "howard@ki1r0y.com",
+  "author": {
+    "name": "Howard Stearns",
+    "email": "howard@ki1r0y.com"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/kilroy-code/distributed-security/issues"
