@@ -2,14 +2,6 @@
   "name": "@kilroy-code/jsonrpc",
   "version": "0.0.1",
   "description": "Easy setup jsonrpc using postMessage between frames or workers.",
-  "main": "index.mjs",
-  "scripts": {
-    "test": "jasmine"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kilroy-code/distributed-security.git"
-  },
   "keywords": [
     "jsonrpc",
     "postMessage",
@@ -17,13 +9,24 @@
     "worker",
     "iframe"
   ],
+  "main": "index.mjs",
+  "scripts": {
+    "test": "jasmine"
+  },
   "author": {
     "name": "Howard Stearns",
     "email": "howard@ki1r0y.com"
   },
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/kilroy-code/distributed-security/issues"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kilroy-code/jsonrpc.git"
   },
-  "homepage": "https://github.com/kilroy-code/distributed-security#readme"
+  "homepage": "https://github.com/kilroy-code/jsonrpc-security#readme",
+  "bugs": {
+    "url": "https://github.com/kilroy-code/jsonrpc/issues"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 }
