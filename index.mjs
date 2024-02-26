@@ -25,7 +25,7 @@ function dispatch({target,
   receiver.addEventListener('message', async event => {
     log('message', event.data, 'from', event.origin || targetLabel);
     let {id, method, params = [], result, error, jsonrpc:version} = event.data || {};
-    if (event.source && (event.source !== target)) return logerror(targetLabel, 'got mismatched event from', event.origin);
+    // FIXME!!! if (event.source && (event.source !== target)) return logerror(targetLabel, 'got mismatched event from', event.origin);
     if (origin && (origin !== event.origin)) return logerror('mismatched origin', origin, event.origin);
     if (version !== jsonrpc) return logwarn(`Ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
 
