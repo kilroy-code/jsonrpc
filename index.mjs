@@ -8,26 +8,27 @@ function dispatch({target,
 		   receiver = target,
 		   namespace = receiver,
 		   origin = ((target !== receiver) && target.location.origin),
-		   log = () => null,
+		   targetLabel = origin || target.location?.href || target,
+		   dispatcherLabel = receiver.location?.href || receiver,
+		   log = console.log.bind(console), //fixme () => null,
 		   warn:logwarn = console.warn.bind(console),
 		   error:logerror = console.error.bind(console)
 		  }) {
   let requests = {},
       messageId = 0,
       jsonrpc = '2.0',
-      targetLabel = origin || target,
       capturedPost = target.postMessage.bind(target), // In case (malicious) code later changes it.
       // window.postMessage and friends takes a targetOrigin that we should supply.
       // But other forms give error rather than ignoring the extra arg. So set the right form at initialization.
       post = origin ? message => capturedPost(message, origin) : capturedPost;
-  log('dispatch to', targetLabel);
+  log(dispatcherLabel, 'dispatch to', targetLabel);
 
   receiver.addEventListener('message', async event => {
-    log('message', event.data, 'from', event.origin || targetLabel);
+    log(dispatcherLabel, 'got message', event.data, 'from', targetLabel, event.origin);
     let {id, method, params = [], result, error, jsonrpc:version} = event.data || {};
-    // FIXME!!! if (event.source && (event.source !== target)) return logerror(targetLabel, 'got mismatched event from', event.origin);
-    if (origin && (origin !== event.origin)) return logerror('mismatched origin', origin, event.origin);
-    if (version !== jsonrpc) return logwarn(`Ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
+    if (event.source && (event.source !== target)) return logerror(dispatcherLabel, 'got mismatched event from', targetLabel, event.origin);
+    if (origin && (origin !== event.origin)) return logerror(dispatcherLabel, origin, 'mismatched origin', targetLabel, event.origin);
+    if (version !== jsonrpc) return logwarn(`${dispatcherLabel} ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
 
     if (method) { // Incoming request or notification from target.
       let error = null, result,
@@ -42,13 +43,13 @@ function dispatch({target,
 	  error.message = `${error.name || error.toString()} in ${method}.`;
       }
       let response = error ? {id, error, jsonrpc} : {id, result, jsonrpc};
-      log('answering', id, error || result, 'to', targetLabel);
+      log(dispatcherLabel, 'answering', id, error || result, 'to', targetLabel);
       return post(response);
     }
 
     let request = requests[id]; // A response from target to our earlier outgoing request.
     delete requests[id];
-    if (!request) return console.log(`Ignoring response ${event.data}.`);
+    if (!request) return logwarn(`${dispatcherLabel} ignoring response ${event.data}.`);
     if (error) request.reject(error);
     else request.resolve(result);
   });
@@ -59,7 +60,7 @@ function dispatch({target,
 	request = requests[id] = {};
     return new Promise((resolve, reject) => {
       Object.assign(request, {resolve, reject});
-      log('posting', id, method, params, 'to', targetLabel);
+      log(dispatcherLabel, 'requesting', id, method, params, 'to', targetLabel);
       post({id, method, params, jsonrpc});
     });
   };
