@@ -1,6 +1,6 @@
 {
   "name": "@kilroy-code/jsonrpc",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Easy setup jsonrpc using postMessage between frames or workers.",
   "keywords": [
     "jsonrpc",
