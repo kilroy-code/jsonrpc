@@ -1,7 +1,7 @@
 
 function transferrableError(error) { // An error object that we receive on our side might not be transferrable to the other.
-  let {name, message} = error;
-  return {name, message};
+  let {name, message, code, data} = error;
+  return {name, message, code, data};
 }
 
 // Set up bidirectional communcations with target, returning a function (methodName, ...params) that will send to target.
@@ -18,13 +18,13 @@ function dispatch({target = self,        // The window, worker, or other object 
 		   warn:logwarn = console.warn.bind(console),
 		   error:logerror = console.error.bind(console)
 		  }) {
-  let requests = {},
-      messageId = 0,
-      jsonrpc = '2.0',
-      capturedPost = target.postMessage.bind(target), // In case (malicious) code later changes it.
-      // window.postMessage and friends takes a targetOrigin that we supply.
-      // But worker.postMessage gives error rather than ignoring the extra arg. So set the right form at initialization.
-      post = origin ? message => capturedPost(message, origin) : capturedPost;
+  const requests = {},
+        jsonrpc = '2.0',
+        capturedPost = target.postMessage.bind(target), // In case (malicious) code later changes it.
+        // window.postMessage and friends takes a targetOrigin that we supply.
+        // But worker.postMessage gives error rather than ignoring the extra arg. So set the right form at initialization.
+        post = origin ? message => capturedPost(message, origin) : capturedPost;
+  let messageId = 0; // pre-incremented id starts at 1.
 
   function request(method, ...params) { // Promise the result of method(...params) in target.
     // We do a target.postMessage of a jsonrpc request, and resolve the promise with the response, matched by id.
@@ -35,7 +35,7 @@ function dispatch({target = self,        // The window, worker, or other object 
 	request = requests[id] = {};
     // It would be nice to not leak request objects if they aren't answered.
     return new Promise((resolve, reject) => {
-      log(dispatcherLabel, 'requesting', id, method, params, 'to', targetLabel);
+      log(dispatcherLabel, 'request', id, method, params, 'to', targetLabel);
       Object.assign(request, {resolve, reject});
       post({id, method, params, jsonrpc});
     });
@@ -58,11 +58,13 @@ function dispatch({target = self,        // The window, worker, or other object 
         result = await namespace[method](...args); // Call the method.
       } catch (e) { // Send back a clean {name, message} object.
         error = transferrableError(e);
-        if (!namespace[method] && !error.message.includes(method))
+        if (!namespace[method] && !error.message.includes(method)) {
 	  error.message = `${method} is not defined.`; // Be more helpful than some browsers.
-        else if (!error.message) // It happens. E.g., operational errors from crypto.
+          error.code = -32601; // Defined by json-rpc spec.
+        } else if (!error.message) // It happens. E.g., operational errors from crypto.
 	  error.message = `${error.name || error.toString()} in ${method}.`;
       }
+      if (id === undefined) return; // Don't respond to a 'notification'. null id is still sent back.
       let response = error ? {id, error, jsonrpc} : {id, result, jsonrpc};
       log(dispatcherLabel, 'answering', id, error || result, 'to', targetLabel);
       return post(response);
@@ -77,8 +79,11 @@ function dispatch({target = self,        // The window, worker, or other object 
   }
 
   // Now set up the handler and return the function for the caller to use to make requests.
-  log(`${dispatcherLabel} will dispatch to ${targetLabel}`);
-  receiver.addEventListener('message', respond);
+  //receiver.addEventListener('message', respond);
+  //receiver.onmessage = respond;
+  receiver.addEventListener("message", respond);
+  //receiver.start?.(); // If receiver has a start method (e.g., MessagePort), call it.
+  log(`${dispatcherLabel} will dispatch to ${targetLabel}`, target, receiver);
   return request;
 }
 
