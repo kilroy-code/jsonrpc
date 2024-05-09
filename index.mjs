@@ -14,7 +14,8 @@ function dispatch({target = self,        // The window, worker, or other object 
 		   dispatcherLabel = namespace.name || receiver.name || receiver.location?.href || receiver,
 		   targetLabel = target.name || origin || target.location?.href || target,
 
-		   log = () => null,
+		   log = null,
+		   info:loginfo = console.info.bind(console),
 		   warn:logwarn = console.warn.bind(console),
 		   error:logerror = console.error.bind(console)
 		  }) {
@@ -23,7 +24,8 @@ function dispatch({target = self,        // The window, worker, or other object 
         capturedPost = target.postMessage.bind(target), // In case (malicious) code later changes it.
         // window.postMessage and friends takes a targetOrigin that we supply.
         // But worker.postMessage gives error rather than ignoring the extra arg. So set the right form at initialization.
-        post = origin ? message => capturedPost(message, origin) : capturedPost;
+        post = origin ? message => capturedPost(message, origin) : capturedPost,
+        nullLog = () => {};
   let messageId = 0; // pre-incremented id starts at 1.
 
   function request(method, ...params) { // Promise the result of method(...params) in target.
@@ -35,20 +37,20 @@ function dispatch({target = self,        // The window, worker, or other object 
 	request = requests[id] = {};
     // It would be nice to not leak request objects if they aren't answered.
     return new Promise((resolve, reject) => {
-      log(dispatcherLabel, 'request', id, method, params, 'to', targetLabel);
+      log?.(dispatcherLabel, 'request', id, method, params, 'to', targetLabel);
       Object.assign(request, {resolve, reject});
       post({id, method, params, jsonrpc});
     });
   }
 
   async function respond(event) { // Handle 'message' events that we receive from target.
-    log(dispatcherLabel, 'got message', event.data, 'from', targetLabel, event.origin);
+    log?.(dispatcherLabel, 'got message', event.data, 'from', targetLabel, event.origin);
     let {id, method, params = [], result, error, jsonrpc:version} = event.data || {};
 
     // Noisily ignore messages that are not from the expect target or origin, or which are not jsonrpc.
-    if (event.source && (event.source !== target)) return logerror(dispatcherLabel, 'to', targetLabel,  'got message from', event.source);
-    if (origin && (origin !== event.origin)) return logerror(dispatcherLabel, origin, 'mismatched origin', targetLabel, event.origin);
-    if (version !== jsonrpc) return logwarn(`${dispatcherLabel} ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
+    if (event.source && (event.source !== target)) return logerror?.(dispatcherLabel, 'to', targetLabel,  'got message from', event.source);
+    if (origin && (origin !== event.origin)) return logerror?.(dispatcherLabel, origin, 'mismatched origin', targetLabel, event.origin);
+    if (version !== jsonrpc) return logwarn?.(`${dispatcherLabel} ignoring non-jsonrpc message ${JSON.stringify(event.data)}.`);
 
     if (method) { // Incoming request or notification from target.
       let error = null, result,
@@ -66,24 +68,21 @@ function dispatch({target = self,        // The window, worker, or other object 
       }
       if (id === undefined) return; // Don't respond to a 'notification'. null id is still sent back.
       let response = error ? {id, error, jsonrpc} : {id, result, jsonrpc};
-      log(dispatcherLabel, 'answering', id, error || result, 'to', targetLabel);
+      log?.(dispatcherLabel, 'answering', id, error || result, 'to', targetLabel);
       return post(response);
     }
 
     // Otherwise, it is a response from target to our earlier outgoing request.
     let request = requests[id];  // Resolve or reject the promise that an an earlier request created.
     delete requests[id];
-    if (!request) return logwarn(`${dispatcherLabel} ignoring response ${event.data}.`);
+    if (!request) return logwarn?.(`${dispatcherLabel} ignoring response ${event.data}.`);
     if (error) request.reject(error);
     else request.resolve(result);
   }
 
   // Now set up the handler and return the function for the caller to use to make requests.
-  //receiver.addEventListener('message', respond);
-  //receiver.onmessage = respond;
   receiver.addEventListener("message", respond);
-  //receiver.start?.(); // If receiver has a start method (e.g., MessagePort), call it.
-  log(`${dispatcherLabel} will dispatch to ${targetLabel}`, target, receiver);
+  loginfo?.(`${dispatcherLabel} will dispatch to ${targetLabel}`);
   return request;
 }
 

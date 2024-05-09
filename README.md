@@ -32,8 +32,8 @@ function({
    namespace = receiver,
    origin = ((target !== receiver) && target.location.origin),
 
-   log = () => null,
-   info = log,
+   log = null,
+   info = console.info.bind(console),
    warn = console.warn.bind(console),
    error = console.error.bind(console),
       
@@ -50,7 +50,7 @@ Although the above example shows @kilroy-code/jsonrpc being used on both sides, 
 
 The `origin` argument is used the second argument to `target.postMessage(message, targetOrigin)`, and is used in the `receiver.onmessage` handler to ignore messages that are not from the spected origin.
 
-The `log`, `info`, `warn`, and `error` arguments are used to log sending/receiving, setup, non-jsonrpc messages, and origin or source mismatches, respectively, using `targetLabel` and `dispatcherLabel`.
+The `log`, `info`, `warn`, and `error` arguments are used to log sending/receiving, setup, non-jsonrpc messages, and origin or source mismatches, respectively, using `targetLabel` and `dispatcherLabel`. A falsy value for a logger is allowed.
 
 ## Errors
 
