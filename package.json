@@ -1,6 +1,6 @@
 {
-  "name": "@kilroy-code/jsonrpc",
-  "version": "0.0.3",
+  "name": "@kilroy/jsonrpc",
+  "version": "1.0.0",
   "description": "Easy setup jsonrpc using postMessage between frames or workers.",
   "keywords": [
     "jsonrpc",
@@ -27,6 +27,6 @@
     "url": "https://github.com/kilroy-code/jsonrpc/issues"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org"
   }
 }
