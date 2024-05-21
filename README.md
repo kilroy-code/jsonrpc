@@ -4,7 +4,7 @@ Easy setup, two-way [jsonrpc](https://www.jsonrpc.org/specification) using [post
 
 ```
 // In worker.js
-import dispatch from '/@kilroy-code/jsonrpc/index.mjs';
+import dispatch from '@ki1r0y/jsonrpc/index.mjs';
 const send = dispatch({ target: self }); // Returns a function.
 async function sum(a, b) {               // Callable by other end.
   let offset = await send('getOffset');  // Call getOffset() at other end, returning promise.
@@ -12,7 +12,7 @@ async function sum(a, b) {               // Callable by other end.
 }
 
 // In app.js
-import dispatch from '@kilroy-code/jsonrpc/index.mjs';
+import dispatch from '@ki1r0y/jsonrpc/index.mjs';
 const worker = new Worker('worker.mjs', {type: 'module'});
 const send = dispatch({ target: worker, receiver: self })}; // Returns a function.
 function getOffset() {               // Callable by other end.
@@ -46,7 +46,7 @@ that does two things:
 1. It adds a handler for `message` events on `receiver`([*](#notes)). The handler processes jsonrpc requests or responses and ignores non-jsonprc messages. The `target` can be anything that defines `postMessage`, such as port, worker, the contentWindow for an iframe, or top-level self. When a jsonrpc request comes in from `target`, the handler will call `namespace[method](...params)` and send the result or error back to `target`.
 2. Returns a `function(methodName, ...arguments)` that can be used to make requests to target. A call to this function returns a Promise that will be resolved or rejected with the response from target. (All such requests are sent as a jsonrpc request that expects a response, and not as jsonrpc 1.0 notifications which have no way to indicate errors.)
 
-Although the above example shows @kilroy-code/jsonrpc being used on both sides, any [JSON-RPC 2.0](https://www.jsonrpc.org/specification) conforming implementation can be used on the other side. Although @kilroy-code/jsonrpc always sends array params, it will accept a single object as params as well for compatability with other jsonrpc implementations.
+Although the above example shows @ki1r0y/jsonrpc being used on both sides, any [JSON-RPC 2.0](https://www.jsonrpc.org/specification) conforming implementation can be used on the other side. Although @ki1r0y/jsonrpc always sends array params, it will accept a single object as params as well for compatability with other jsonrpc implementations.
 
 The `origin` argument is used the second argument to `target.postMessage(message, targetOrigin)`, and is used in the `receiver.onmessage` handler to ignore messages that are not from the spected origin.
 
