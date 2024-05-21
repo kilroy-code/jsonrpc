@@ -1,5 +1,5 @@
 {
-  "name": "@kilroy/jsonrpc",
+  "name": "@ki1r0y/jsonrpc",
   "version": "1.0.0",
   "description": "Easy setup jsonrpc using postMessage between frames or workers.",
   "keywords": [
